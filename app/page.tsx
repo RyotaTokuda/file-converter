@@ -187,9 +187,16 @@ export default function Home() {
       </main>
 
       <footer className="border-t border-gray-100 px-6 py-6 text-center text-xs text-gray-400">
-        © {new Date().getFullYear()} Bloom Software ·{" "}
+        <a href="https://bloom-software.vercel.app" className="hover:text-gray-600">
+          © {new Date().getFullYear()} Bloom Software
+        </a>
+        {" · "}
         <a href="https://bloom-software.vercel.app/privacy" className="hover:text-gray-600">
           プライバシーポリシー
+        </a>
+        {" · "}
+        <a href="https://bloom-software.vercel.app/terms" className="hover:text-gray-600">
+          利用規約
         </a>
       </footer>
     </div>
