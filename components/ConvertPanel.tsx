@@ -7,7 +7,7 @@ interface FileItem {
   status: "waiting" | "converting" | "done" | "error";
   result?: { blob: Blob; filename: string };
   error?: string;
-  progress?: number; // 0-100, used during video conversion
+  progress?: number;
 }
 
 interface Props {
@@ -35,6 +35,24 @@ export default function ConvertPanel({ items, onConvert, onClear, isConverting }
   if (items.length === 0) return null;
 
   const allDone = items.every((i) => i.status === "done" || i.status === "error");
+  const hasWaiting = items.some((i) => i.status === "waiting");
+  const convertDisabled = isConverting || !hasWaiting;
+
+  // 変換ボタン付近に表示する警告
+  const warning = (() => {
+    if (isConverting) return null;
+    if (!hasWaiting && allDone) {
+      const errorCount = items.filter((i) => i.status === "error").length;
+      if (errorCount > 0 && errorCount === items.length) {
+        return "すべてのファイルでエラーが発生しました。クリアして再試行してください。";
+      }
+      return "変換済みです。クリアして新しいファイルを追加してください。";
+    }
+    if (!hasWaiting && items.length > 0) {
+      return "変換待ちのファイルがありません。";
+    }
+    return null;
+  })();
 
   function downloadAll() {
     items.forEach((item) => {
@@ -94,7 +112,6 @@ export default function ConvertPanel({ items, onConvert, onClear, isConverting }
                   download={item.result.filename}
                   className="rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
                   onClick={(e) => {
-                    // URL を再生成して確実にダウンロード
                     const url = URL.createObjectURL(item.result!.blob);
                     (e.currentTarget as HTMLAnchorElement).href = url;
                     setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -109,23 +126,35 @@ export default function ConvertPanel({ items, onConvert, onClear, isConverting }
       </ul>
 
       {/* アクションボタン */}
-      <div className="flex gap-2">
-        {!allDone && (
+      <div className="space-y-2">
+        <div className="flex gap-2">
+          {/* 変換ボタン（常に表示、条件でグレイアウト） */}
           <button
             onClick={onConvert}
-            disabled={isConverting}
-            className="flex-1 h-12 rounded-2xl bg-emerald-600 text-white text-sm font-bold disabled:bg-emerald-300 hover:bg-emerald-700 transition-colors"
+            disabled={convertDisabled}
+            className={`flex-1 h-12 rounded-2xl text-sm font-bold transition-colors ${
+              convertDisabled
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-emerald-600 text-white hover:bg-emerald-700"
+            }`}
           >
             {isConverting ? "変換中..." : "変換する"}
           </button>
-        )}
-        {allDone && items.some((i) => i.result) && (
-          <button
-            onClick={downloadAll}
-            className="flex-1 h-12 rounded-2xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 transition-colors"
-          >
-            すべてダウンロード
-          </button>
+
+          {/* 一括ダウンロード（完了時のみ） */}
+          {allDone && items.some((i) => i.result) && (
+            <button
+              onClick={downloadAll}
+              className="flex-1 h-12 rounded-2xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 transition-colors"
+            >
+              すべてダウンロード
+            </button>
+          )}
+        </div>
+
+        {/* 警告テキスト */}
+        {warning && (
+          <p className="text-xs text-amber-600 text-center">⚠️ {warning}</p>
         )}
       </div>
     </div>

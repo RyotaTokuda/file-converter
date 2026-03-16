@@ -49,10 +49,32 @@ export default function Home() {
   }
 
   function handleFiles(files: File[]) {
-    setItems((prev) => [
-      ...prev,
-      ...files.map((file) => ({ file, status: "waiting" as const })),
-    ]);
+    const newItems = files.map((file) => {
+      if (!isCompatible(file, mode)) {
+        return {
+          file,
+          status: "error" as const,
+          error: mode === "image"
+            ? "非対応形式です（HEIC / WebP / JPG / PNG のみ対応）"
+            : "非対応形式です（MP4 / MOV / AVI / MKV のみ対応）",
+        };
+      }
+      return { file, status: "waiting" as const };
+    });
+    setItems((prev) => [...prev, ...newItems]);
+  }
+
+  function isCompatible(file: File, currentMode: Mode): boolean {
+    if (currentMode === "image") {
+      return (
+        file.type.startsWith("image/") ||
+        /\.(jpg|jpeg|png|webp|heic|heif)$/i.test(file.name)
+      );
+    }
+    return (
+      file.type.startsWith("video/") ||
+      /\.(mp4|mov|avi|mkv)$/i.test(file.name)
+    );
   }
 
   async function handleConvert() {
@@ -160,6 +182,8 @@ export default function Home() {
             onFiles={handleFiles}
             accept={mode === "image" ? IMAGE_ACCEPT : VIDEO_ACCEPT}
             disabled={isConverting}
+            items={items}
+            mode={mode}
           />
 
           {/* 変換設定 */}
