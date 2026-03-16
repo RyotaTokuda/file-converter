@@ -51,8 +51,8 @@ export async function convertVideo(
   options: VideoConvertOptions,
   onProgress?: (p: number) => void,
 ): Promise<VideoConvertResult> {
-  if (file.size > 300 * 1024 * 1024) {
-    throw new Error("ファイルサイズが大きすぎます（上限300MB）");
+  if (file.size > 500 * 1024 * 1024) {
+    throw new Error("ファイルサイズが大きすぎます（上限500MB）");
   }
 
   const ff = await getFFmpeg();
@@ -125,7 +125,9 @@ function buildArgs(
   } else {
     args.push("-crf", "23");
   }
-  args.push("-preset", "fast", "-c:a", "aac", "-movflags", "+faststart");
+  // ultrafast: fast で変換し、ブラウザ内のメモリ消費も抑える
+  // threads 0: 利用可能な CPU コアをすべて使用する
+  args.push("-preset", "ultrafast", "-threads", "0", "-c:a", "aac", "-movflags", "+faststart");
   args.push(output);
 
   return args;

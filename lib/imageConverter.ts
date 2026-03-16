@@ -21,15 +21,19 @@ async function convertViaCanvas(
   maxWidth?: number,
   maxHeight?: number
 ): Promise<ConvertResult> {
-  const bitmap = await createImageBitmap(file);
+  // maxWidth が指定されている場合、デコード時に直接リサイズする。
+  // フル解像度でデコードしてからキャンバスで縮小するより、ピーク時メモリを大幅に削減できる。
+  // （例：4000px幅の画像を maxWidth=1920 で処理する場合、メモリ消費が約 4 分の 1 になる）
+  const bitmapOptions: ImageBitmapOptions = maxWidth
+    ? { resizeWidth: maxWidth, resizeQuality: "medium" }
+    : {};
+
+  const bitmap = await createImageBitmap(file, bitmapOptions);
 
   let w = bitmap.width;
   let h = bitmap.height;
 
-  if (maxWidth && w > maxWidth) {
-    h = Math.round((h * maxWidth) / w);
-    w = maxWidth;
-  }
+  // maxHeight のみ残存チェック（maxWidth はデコード時に適用済み）
   if (maxHeight && h > maxHeight) {
     w = Math.round((w * maxHeight) / h);
     h = maxHeight;
@@ -86,7 +90,7 @@ export async function convertImage(
   file: File,
   options: ConvertOptions
 ): Promise<ConvertResult> {
-  const MAX_SIZE_MB = 50;
+  const MAX_SIZE_MB = 100;
   if (file.size > MAX_SIZE_MB * 1024 * 1024) {
     throw new Error(`ファイルサイズが ${MAX_SIZE_MB}MB を超えています`);
   }
