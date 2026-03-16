@@ -1,0 +1,36 @@
+name: バンドルサイズチェック
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  bundle-size:
+    name: バンドルサイズ確認
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Node.js をセットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: 依存パッケージをインストール
+        run: npm ci
+
+      - name: ビルドを実行
+        run: npm run build
+
+      - name: バンドルサイズを計測・表示
+        # PWA・モバイル向けにビルド成果物のサイズを記録しておく
+        # 将来的に閾値を設けてサイズ増加を検知できるようにする
+        run: |
+          echo "=== ビルド成果物のサイズ ==="
+          du -sh .next/static/chunks/*.js 2>/dev/null | sort -rh || true
+          echo ""
+          echo "=== .next 全体のサイズ ==="
+          du -sh .next/

@@ -3,24 +3,50 @@
 import { useState } from "react";
 import DropZone from "@/components/DropZone";
 import FormatPicker from "@/components/FormatPicker";
+import VideoFormatPicker, { VideoConvertOptions } from "@/components/VideoFormatPicker";
 import ConvertPanel from "@/components/ConvertPanel";
-import { convertImage, OutputFormat, ConvertResult } from "@/lib/imageConverter";
+import { convertImage, OutputFormat } from "@/lib/imageConverter";
+import { convertVideo, preloadFFmpeg } from "@/lib/videoConverter";
+
+type Mode = "image" | "video";
 
 interface FileItem {
   file: File;
   status: "waiting" | "converting" | "done" | "error";
-  result?: ConvertResult;
+  result?: { blob: Blob; filename: string };
   error?: string;
+  progress?: number;
 }
 
-const ACCEPT = ".jpg,.jpeg,.png,.webp,.heic,.heif,image/jpeg,image/png,image/webp,image/heic,image/heif";
+const IMAGE_ACCEPT = ".jpg,.jpeg,.png,.webp,.heic,.heif,image/jpeg,image/png,image/webp,image/heic,image/heif";
+const VIDEO_ACCEPT = ".mp4,.mov,.avi,.mkv,video/mp4,video/quicktime,video/x-msvideo,video/x-matroska";
+
+const DEFAULT_VIDEO_OPTIONS: VideoConvertOptions = {
+  outputFormat: "mp4",
+  videoBitrate: "1500k",
+  maxWidth: "1280",
+  fps: "15",
+};
 
 export default function Home() {
+  const [mode, setMode] = useState<Mode>("image");
   const [items, setItems] = useState<FileItem[]>([]);
+  const [isConverting, setIsConverting] = useState(false);
+
+  // Image settings
   const [outputFormat, setOutputFormat] = useState<OutputFormat>("image/jpeg");
   const [quality, setQuality] = useState(0.85);
   const [maxWidth, setMaxWidth] = useState("");
-  const [isConverting, setIsConverting] = useState(false);
+
+  // Video settings
+  const [videoOptions, setVideoOptions] = useState<VideoConvertOptions>(DEFAULT_VIDEO_OPTIONS);
+
+  function handleModeChange(next: Mode) {
+    if (next === mode) return;
+    setMode(next);
+    setItems([]);
+    if (next === "video") preloadFFmpeg();
+  }
 
   function handleFiles(files: File[]) {
     setItems((prev) => [
@@ -36,22 +62,37 @@ export default function Home() {
       if (items[i].status !== "waiting") continue;
 
       setItems((prev) =>
-        prev.map((item, idx) => idx === i ? { ...item, status: "converting" } : item)
+        prev.map((item, idx) => idx === i ? { ...item, status: "converting", progress: mode === "video" ? 0 : undefined } : item)
       );
 
       try {
-        const result = await convertImage(items[i].file, {
-          outputFormat,
-          quality,
-          maxWidth: maxWidth ? Number(maxWidth) : undefined,
-        });
+        let result: { blob: Blob; filename: string };
+
+        if (mode === "image") {
+          result = await convertImage(items[i].file, {
+            outputFormat,
+            quality,
+            maxWidth: maxWidth ? Number(maxWidth) : undefined,
+          });
+        } else {
+          result = await convertVideo(
+            items[i].file,
+            videoOptions,
+            (progress) => {
+              setItems((prev) =>
+                prev.map((item, idx) => idx === i ? { ...item, progress } : item)
+              );
+            },
+          );
+        }
+
         setItems((prev) =>
-          prev.map((item, idx) => idx === i ? { ...item, status: "done", result } : item)
+          prev.map((item, idx) => idx === i ? { ...item, status: "done", result, progress: undefined } : item)
         );
       } catch (err) {
         const message = err instanceof Error ? err.message : "変換に失敗しました";
         setItems((prev) =>
-          prev.map((item, idx) => idx === i ? { ...item, status: "error", error: message } : item)
+          prev.map((item, idx) => idx === i ? { ...item, status: "error", error: message, progress: undefined } : item)
         );
       }
     }
@@ -90,18 +131,50 @@ export default function Home() {
             </p>
           </div>
 
+          {/* モード切替 */}
+          <div className="flex gap-2 rounded-2xl bg-gray-100 p-1">
+            <button
+              onClick={() => handleModeChange("image")}
+              className={`flex-1 rounded-xl py-2 text-sm font-semibold transition-colors ${
+                mode === "image"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              🖼 画像変換
+            </button>
+            <button
+              onClick={() => handleModeChange("video")}
+              className={`flex-1 rounded-xl py-2 text-sm font-semibold transition-colors ${
+                mode === "video"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              🎬 動画変換
+            </button>
+          </div>
+
           {/* ドロップゾーン */}
-          <DropZone onFiles={handleFiles} accept={ACCEPT} disabled={isConverting} />
+          <DropZone
+            onFiles={handleFiles}
+            accept={mode === "image" ? IMAGE_ACCEPT : VIDEO_ACCEPT}
+            disabled={isConverting}
+          />
 
           {/* 変換設定 */}
-          <FormatPicker
-            outputFormat={outputFormat}
-            quality={quality}
-            maxWidth={maxWidth}
-            onOutputFormat={setOutputFormat}
-            onQuality={setQuality}
-            onMaxWidth={setMaxWidth}
-          />
+          {mode === "image" ? (
+            <FormatPicker
+              outputFormat={outputFormat}
+              quality={quality}
+              maxWidth={maxWidth}
+              onOutputFormat={setOutputFormat}
+              onQuality={setQuality}
+              onMaxWidth={setMaxWidth}
+            />
+          ) : (
+            <VideoFormatPicker options={videoOptions} onChange={setVideoOptions} />
+          )}
 
           {/* 変換パネル */}
           <ConvertPanel

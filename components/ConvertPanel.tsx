@@ -1,12 +1,13 @@
 "use client";
 
-import { ConvertResult, formatBytes } from "@/lib/imageConverter";
+import { formatBytes } from "@/lib/imageConverter";
 
 interface FileItem {
   file: File;
   status: "waiting" | "converting" | "done" | "error";
-  result?: ConvertResult;
+  result?: { blob: Blob; filename: string };
   error?: string;
+  progress?: number; // 0-100, used during video conversion
 }
 
 interface Props {
@@ -73,6 +74,14 @@ export default function ConvertPanel({ items, onConvert, onClear, isConverting }
                   </span>
                 )}
               </p>
+              {item.status === "converting" && item.progress !== undefined && (
+                <div className="mt-1.5 h-1 w-full rounded-full bg-gray-200 overflow-hidden">
+                  <div
+                    className="h-full bg-blue-500 rounded-full transition-all duration-300"
+                    style={{ width: `${item.progress}%` }}
+                  />
+                </div>
+              )}
               {item.error && <p className="text-xs text-red-500 mt-0.5">{item.error}</p>}
             </div>
             <div className="flex items-center gap-2 shrink-0">
