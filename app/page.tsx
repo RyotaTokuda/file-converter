@@ -133,7 +133,7 @@ export default function Home() {
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="text-base font-bold text-gray-900">🔄 ローカルファイル変換</h1>
-            <p className="text-xs text-gray-400">by Bloom Software</p>
+            <p className="text-xs text-gray-400">by Mankai Software</p>
           </div>
           <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
@@ -211,15 +211,15 @@ export default function Home() {
       </main>
 
       <footer className="border-t border-gray-100 px-6 py-6 text-center text-xs text-gray-400">
-        <a href="https://bloom-software.vercel.app" className="hover:text-gray-600">
-          © {new Date().getFullYear()} Bloom Software
+        <a href="https://mankai-software.vercel.app" className="hover:text-gray-600">
+          © {new Date().getFullYear()} Mankai Software
         </a>
         {" · "}
-        <a href="https://bloom-software.vercel.app/privacy" className="hover:text-gray-600">
+        <a href="https://mankai-software.vercel.app/privacy" className="hover:text-gray-600">
           プライバシーポリシー
         </a>
         {" · "}
-        <a href="https://bloom-software.vercel.app/terms" className="hover:text-gray-600">
+        <a href="https://mankai-software.vercel.app/terms" className="hover:text-gray-600">
           利用規約
         </a>
       </footer>

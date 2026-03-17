@@ -5,7 +5,7 @@ import "./globals.css";
 const geist = Geist({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "ローカルファイル変換 | Bloom Software",
+  title: "ローカルファイル変換 | Mankai Software",
   description: "HEIC・WebP・動画などをブラウザ内だけで変換。ファイルはサーバーに送られません。",
 };
 

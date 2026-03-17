@@ -95,6 +95,7 @@ export default function VideoFormatPicker({ options, onChange }: Props) {
               placeholder="制限なし"
               value={options.maxWidth}
               onChange={(e) => set({ maxWidth: e.target.value })}
+              onWheel={(e) => e.currentTarget.blur()}
               className="w-full rounded-xl border border-gray-200 px-3 py-1.5 text-sm text-gray-800 focus:outline-none focus:border-emerald-400"
             />
           </div>
@@ -121,6 +122,7 @@ export default function VideoFormatPicker({ options, onChange }: Props) {
               placeholder="480"
               value={options.maxWidth}
               onChange={(e) => set({ maxWidth: e.target.value })}
+              onWheel={(e) => e.currentTarget.blur()}
               className="w-full rounded-xl border border-gray-200 px-3 py-1.5 text-sm text-gray-800 focus:outline-none focus:border-emerald-400"
             />
           </div>

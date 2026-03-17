@@ -86,6 +86,7 @@ export default function FormatPicker({
             placeholder="制限なし"
             value={maxWidth}
             onChange={(e) => onMaxWidth(e.target.value)}
+            onWheel={(e) => e.currentTarget.blur()}
             className="w-full rounded-xl border border-gray-200 px-3 py-1.5 text-sm text-gray-800 focus:outline-none focus:border-emerald-400"
           />
         </div>
