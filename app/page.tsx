@@ -7,6 +7,8 @@ import VideoFormatPicker, { VideoConvertOptions } from "@/components/VideoFormat
 import ConvertPanel from "@/components/ConvertPanel";
 import { convertImage, OutputFormat } from "@/lib/imageConverter";
 import { convertVideo, preloadFFmpeg } from "@/lib/videoConverter";
+import { checkBrowserCompat } from "@/lib/browserCompat";
+import BrowserWarning from "@/components/BrowserWarning";
 
 type Mode = "image" | "video";
 
@@ -30,6 +32,7 @@ const DEFAULT_VIDEO_OPTIONS: VideoConvertOptions = {
 
 export default function Home() {
   const [mode, setMode] = useState<Mode>("image");
+  const compat = typeof window !== "undefined" ? checkBrowserCompat() : { imageSupported: true, videoSupported: true };
   const [items, setItems] = useState<FileItem[]>([]);
   const [isConverting, setIsConverting] = useState(false);
 
@@ -144,6 +147,9 @@ export default function Home() {
 
       <main className="flex-1 px-4 py-8">
         <div className="max-w-2xl mx-auto space-y-4">
+          {/* ブラウザ互換警告 */}
+          <BrowserWarning />
+
           {/* 説明 */}
           <div className="rounded-2xl bg-emerald-50 border border-emerald-100 px-5 py-4">
             <p className="text-sm text-emerald-800 leading-relaxed">
@@ -166,14 +172,21 @@ export default function Home() {
               🖼 画像変換
             </button>
             <button
-              onClick={() => handleModeChange("video")}
+              onClick={() => compat.videoSupported && handleModeChange("video")}
+              disabled={!compat.videoSupported}
+              title={!compat.videoSupported ? "このブラウザは動画変換に対応していません" : undefined}
               className={`flex-1 rounded-xl py-2 text-sm font-semibold transition-colors ${
                 mode === "video"
                   ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
+                  : compat.videoSupported
+                  ? "text-gray-500 hover:text-gray-700"
+                  : "text-gray-300 cursor-not-allowed"
               }`}
             >
               🎬 動画変換
+              {!compat.videoSupported && (
+                <span className="block text-[10px] font-normal">非対応</span>
+              )}
             </button>
           </div>
 
