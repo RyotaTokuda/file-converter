@@ -1,15 +1,13 @@
 // Service Worker - ローカルファイル変換
-// アプリシェル（HTML・CSS・JS）をキャッシュしてオフラインでも表示できるようにする。
-// ファイル変換処理自体はブラウザ内で完結するため、オフラインでも動作可能。
+// アプリシェルをキャッシュし、オフライン時は offline.html を表示する。
 
-const CACHE_NAME = "file-converter-v1";
+const CACHE_NAME = "file-converter-v2";
+const OFFLINE_URL = "/offline.html";
 
-// インストール時：アプリシェルをキャッシュ
+// インストール時：オフラインフォールバックページだけは確実に事前キャッシュ
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) =>
-      cache.addAll(["/", "/favicon.ico"])
-    )
+    caches.open(CACHE_NAME).then((cache) => cache.addAll([OFFLINE_URL]))
   );
   self.skipWaiting();
 });
@@ -19,25 +17,23 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
-        keys
-          .filter((key) => key !== CACHE_NAME)
-          .map((key) => caches.delete(key))
+        keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
       )
     )
   );
   self.clients.claim();
 });
 
-// フェッチ：ナビゲーションリクエストは Network First、静的アセットは Cache First
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // 別オリジン（CDN等）はキャッシュしない
+  // 別オリジン（CDN・外部API等）はキャッシュしない
   if (url.origin !== self.location.origin) return;
 
   if (request.mode === "navigate") {
-    // ページナビゲーション：ネットワーク優先、失敗したらキャッシュを返す
+    // ページナビゲーション：ネットワーク優先
+    // → 失敗時はキャッシュを返し、キャッシュもなければ offline.html
     event.respondWith(
       fetch(request)
         .then((response) => {
@@ -45,20 +41,24 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
           return response;
         })
-        .catch(() => caches.match("/"))
+        .catch(async () => {
+          const cached = await caches.match(request);
+          return cached ?? (await caches.match(OFFLINE_URL));
+        })
     );
   } else {
-    // 静的アセット：キャッシュ優先、なければネットワーク
+    // 静的アセット（JS・CSS・画像）：キャッシュ優先、なければネットワークに取りに行きキャッシュ
     event.respondWith(
-      caches.match(request).then(
-        (cached) =>
-          cached ||
-          fetch(request).then((response) => {
+      caches.match(request).then((cached) => {
+        if (cached) return cached;
+        return fetch(request).then((response) => {
+          if (response.ok) {
             const clone = response.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-            return response;
-          })
-      )
+          }
+          return response;
+        });
+      })
     );
   }
 });
